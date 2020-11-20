@@ -1,0 +1,80 @@
+.tlf-container * {
+  box-sizing: border-box;
+}
+.tlf-container > p {
+	margin: 10px 0;
+	text-align: center;
+	font-size: large;	
+}
+
+.tlf-container .tlf-success {
+	color: green;
+}
+
+.tlf-container .tlf-danger {
+	color: red;
+}
+
+.tlf-container input[type=text], .tlf-container input[type=email], .tlf-container select, .tlf-container textarea {
+  width: 100%;
+  padding: 8px !important;
+  resize: vertical;
+}
+
+.tlf-container label {
+  padding: 12px 12px 12px 0;
+  display: inline-block;
+}
+
+.tlf-container input[type=submit] {
+  margin-top: 16px;
+  padding: 12px 20px;
+  cursor: pointer;
+  float: right;
+}
+
+/* .tlf-container input[type=submit]:hover {
+  opacity: .8;
+} */
+
+.tlf-container  {
+  border-radius: 5px; 
+  padding: 10px;
+}
+
+.tlf-container .col-25 {
+  float: left;
+  width: 25%;
+  margin-top: 6px;
+}
+
+.tlf-container .col-75 {
+  float: left;
+  width: 75%;
+  margin-top: 6px;
+}
+
+.tlf-container .col-100 { 
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* Clear floats after the columns */
+.tlf-container .row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* Responsive */
+@media screen and (max-width: 600px) {
+  .tlf-container .col-25, .tlf-container .col-75 {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .tlf-container input[type=submit] {
+    width: 100%;   
+  }
+
+}
