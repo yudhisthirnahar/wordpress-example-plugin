@@ -10,10 +10,10 @@
 				// validate and process form here
 				var str = $tlf_form.serialize();
 				$.ajax({
-					type: 'POST',
-					url: tlfAjax.ajaxurl,
-					data: str,
-					success: function (res) {
+					'type': "POST",
+					'url': tlfAjax.ajaxurl,
+					'data': str,
+					'success': function (res) {
 
 						if (typeof res.data !== undefined) {
 							$tlf_form.find('.tlf-message').html(res.data.message);
@@ -28,7 +28,7 @@
 						
 						
 					},
-					error: function (xhr) { // if error occured						
+					'error': function (xhr) { // if error occured						
 						$tlf_form.find('.tlf-message').html(xhr.statusText);
 					},
 				});
