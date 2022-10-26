@@ -15,7 +15,7 @@
 					data: str,
 					success: function (res) {
 
-						if (typeof res.data != "undefined") {
+						if (typeof res.data !== undefined) {
 							$tlf_form.find('.tlf-message').html(res.data.message);
 						}
 						if (res.success) {
