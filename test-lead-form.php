@@ -4,10 +4,12 @@
  * Plugin URI: https://example.com
  * Description: Test Lead Form Generation for testing.
  * Version: 1.0.0
- * Author: Yudhisthir
+ * Author: Yudhisthir Nahar
  * Author URI: https://example.com
  * Text Domain: tlf
  * Domain Path: /languages
+ *
+ * @package TLF
  */
 
 if ( ! defined( 'WPINC' ) ) {
@@ -21,6 +23,9 @@ if ( ! defined( 'TLF_PLUGIN_VER' ) ) {
 if ( ! defined( 'TLF_PLUGIN_NAME' ) ) {
 	define( 'TLF_PLUGIN_NAME', 'Test Lead Form Generation' );
 }
+
+// Include common functions.
+require_once plugin_dir_path( __FILE__ ) . 'includes/tlf-functions.php';
 
 /**
  * Main class.
@@ -165,25 +170,25 @@ if ( ! class_exists( 'Test_Lead_Form' ) ) {
 		 */
 		public function short_code_implementation( $atts, $content = null ) {
 			// Labels.
-			$label_name    = isset( $atts['label_name'] ) && ! empty( $atts['label_name'] ) ? $atts['label_name'] : 'Name';
-			$label_email   = isset( $atts['label_email'] ) && ! empty( $atts['label_email'] ) ? $atts['label_email'] : 'Email';
-			$label_phone   = isset( $atts['label_phone'] ) && ! empty( $atts['label_phone'] ) ? $atts['label_phone'] : 'Phone';
-			$label_budget  = isset( $atts['label_budget'] ) && ! empty( $atts['label_budget'] ) ? $atts['label_budget'] : 'Desired Budget';
-			$label_message = isset( $atts['label_message'] ) && ! empty( $atts['label_message'] ) ? $atts['label_message'] : 'Message';
+			$defaults      = tlf_get_default_shortcode_attrs();
+			$label_name    = tlf_get_shortcode_attr( $atts, 'label_name', $defaults['label_name'] );
+			$label_email   = tlf_get_shortcode_attr( $atts, 'label_email', $defaults['label_email'] );
+			$label_phone   = tlf_get_shortcode_attr( $atts, 'label_phone', $defaults['label_phone'] );
+			$label_budget  = tlf_get_shortcode_attr( $atts, 'label_budget', $defaults['label_budget'] );
+			$label_message = tlf_get_shortcode_attr( $atts, 'label_message', $defaults['label_message'] );
 
 			// Maxlength.
-			$maxlength_name    = isset( $atts['maxlength_name'] ) && ! empty( $atts['maxlength_name'] ) ? " maxlength = '" . $atts['maxlength_name'] . "' " : '';
-			$maxlength_email   = isset( $atts['maxlength_email'] ) && ! empty( $atts['maxlength_email'] ) ? " maxlength = '" . $atts['maxlength_email'] . "' " : '';
-			$maxlength_phone   = isset( $atts['maxlength_phone'] ) && ! empty( $atts['maxlength_phone'] ) ? " maxlength = '" . $atts['maxlength_phone'] . "' " : '';
-			$maxlength_budget  = isset( $atts['maxlength_budget'] ) && ! empty( $atts['maxlength_budget'] ) ? " maxlength = '" . $atts['maxlength_budget'] . "' " : '';
-			$maxlength_message = isset( $atts['maxlength_message'] ) && ! empty( $atts['maxlength_message'] ) ? " maxlength = '" . $atts['maxlength_message'] . "' " : '';
+			$maxlength_name    = tlf_get_maxlength_attr( tlf_get_shortcode_attr( $atts, 'maxlength_name', '' ) );
+			$maxlength_email   = tlf_get_maxlength_attr( tlf_get_shortcode_attr( $atts, 'maxlength_email', '' ) );
+			$maxlength_phone   = tlf_get_maxlength_attr( tlf_get_shortcode_attr( $atts, 'maxlength_phone', '' ) );
+			$maxlength_budget  = tlf_get_maxlength_attr( tlf_get_shortcode_attr( $atts, 'maxlength_budget', '' ) );
+			$maxlength_message = tlf_get_maxlength_attr( tlf_get_shortcode_attr( $atts, 'maxlength_message', '' ) );
 
 			// Rows.
-			$rows_message = isset( $atts['rows_message'] ) && ! empty( $atts['rows_message'] ) ? " rows = '" . $atts['rows_message'] . "' " : '';
+			$rows_message = tlf_get_rows_attr( tlf_get_shortcode_attr( $atts, 'rows_message', '' ) );
 			// Cols.
-			$cols_message = isset( $atts['cols_message'] ) && ! empty( $atts['cols_message'] ) ? " cols = '" . $atts['cols_message'] . "' " : '';
+			$cols_message = tlf_get_cols_attr( tlf_get_shortcode_attr( $atts, 'cols_message', '' ) );
 
-			wp_enqueue_script( 'jquery' );
 			wp_enqueue_script( 'tlf-script' );
 			ob_start();
 			?>
@@ -195,7 +200,6 @@ if ( ! class_exists( 'Test_Lead_Form' ) ) {
 				?>
 				<form class="tlf-form">
 					<input type="hidden" name="action" value="tlf_submit_customer">
-					<input type="hidden" name="timestamp" value="<?php echo esc_attr( time() ); ?>">
 					<?php wp_nonce_field( 'tlf_submit_customer', 'tlf_customer_nonce' ); ?>
 					<div class="row">
 						<div class="col-25">
@@ -275,7 +279,9 @@ if ( ! class_exists( 'Test_Lead_Form' ) ) {
 		 * @return  void
 		 */
 		private function admin_hooks() {
-
+			// Add custom columns to customer post type.
+			add_filter( 'manage_tlf_customer_posts_columns', array( $this, 'add_custom_posts_column' ) );
+			add_action( 'manage_tlf_customer_posts_custom_column', array( $this, 'render_custom_posts_column' ), 10, 2 );
 		}
 
 		/**
@@ -332,43 +338,10 @@ if ( ! class_exists( 'Test_Lead_Form' ) ) {
 
 			} else {
 				// Process to save as customer post type.
-				$lead_data = array(
-					'name'      => '',
-					'phone'     => '',
-					'email'     => '',
-					'budget'    => '',
-					'message'   => '',
-					'timestamp' => '',
-				);
+				$lead_data = tlf_sanitize_lead_data( $_POST );
 
-				if ( isset( $_POST['name'] ) && ! empty( $_POST['name'] ) ) {
-					$lead_data['name'] = sanitize_text_field( wp_unslash( $_POST['name'] ) );
-				}
-				if ( isset( $_POST['email'] ) && ! empty( $_POST['email'] ) ) {
-					$lead_data['email'] = sanitize_email( wp_unslash( $_POST['email'] ) );
-				}
-				if ( isset( $_POST['phone'] ) && ! empty( $_POST['phone'] ) ) {
-					$lead_data['phone'] = sanitize_text_field( wp_unslash( $_POST['phone'] ) );
-				}
-				if ( isset( $_POST['budget'] ) && ! empty( $_POST['budget'] ) ) {
-					$lead_data['budget'] = sanitize_text_field( wp_unslash( $_POST['budget'] ) );
-				}
-				if ( isset( $_POST['message'] ) && ! empty( $_POST['message'] ) ) {
-					$lead_data['message'] = sanitize_textarea_field( wp_unslash( $_POST['message'] ) );
-				}
-				if ( isset( $_POST['timestamp'] ) && ! empty( $_POST['timestamp'] ) ) {
-					$lead_data['timestamp'] = sanitize_text_field( wp_unslash( $_POST['timestamp'] ) );
-				}
-
-				$title = $lead_data['name'] . ', ' . $lead_data['email'] . ', ' . $lead_data['phone'];
-
-				// Alternative add to the meta.
-				$content  = '<p> <strong>Name :</strong> ' . esc_html( $lead_data['name'] ) . '</p>';
-				$content .= '<p> <strong>Email Address :</strong> ' . esc_html( $lead_data['email'] ) . '</p>';
-				$content .= '<p> <strong>Phone Number :</strong> ' . esc_html( $lead_data['phone'] ) . '</p>';
-				$content .= '<p> <strong>Desired Budget :</strong> ' . esc_html( $lead_data['budget'] ) . '</p>';
-				$content .= '<p> <strong>Time :</strong> ' . esc_html( gmdate( 'Y-m-d H:i:s', $lead_data['timestamp'] ) ) . '</p>';
-				$content .= '<p> <strong>Message :</strong> ' . esc_html( $lead_data['message'] ) . '</p>';
+				$title   = tlf_generate_customer_title( $lead_data );
+				$content = tlf_format_lead_content( $lead_data );
 
 				$customer_post = array(
 					'post_title'   => wp_strip_all_tags( $title ),
@@ -380,6 +353,9 @@ if ( ! class_exists( 'Test_Lead_Form' ) ) {
 				// Insert the post into the database.
 				$post_id = wp_insert_post( $customer_post );
 				if ( $post_id ) {
+					// Save customer data as post meta.
+					tlf_save_customer_meta( $post_id, $lead_data );
+
 					wp_send_json_success(
 						array(
 							'message'   => 'Lead Inserted !!!',
@@ -408,7 +384,7 @@ if ( ! class_exists( 'Test_Lead_Form' ) ) {
 		public function front_scripts() {
 			wp_enqueue_style( 'tlf-style', plugins_url( 'public/css/tlf-public-style.css', __FILE__ ), array(), TLF_PLUGIN_VER, 'all' );
 			// Register the script.
-			wp_register_script( 'tlf-script', plugins_url( 'public/js/tlf-public-script.js', __FILE__ ), array(), TLF_PLUGIN_VER, true );
+			wp_register_script( 'tlf-script', plugins_url( 'public/js/tlf-public-script.js', __FILE__ ), array( 'jquery' ), TLF_PLUGIN_VER, true );
 
 			// Localize the script.
 			wp_localize_script(
@@ -419,6 +395,54 @@ if ( ! class_exists( 'Test_Lead_Form' ) ) {
 					'_ajax_nonce' => wp_create_nonce( 'tlf_submit_customer' ),
 				)
 			);
+		}
+
+		/**
+		 * Add custom column to customer posts list.
+		 *
+		 * @since   1.0.0
+		 * @access  public
+		 * @param   array $columns Existing columns.
+		 * @return  array Modified columns.
+		 */
+		public function add_custom_posts_column( $columns ) {
+			// Add customer name, email, and phone columns after title.
+			$new_columns = array();
+			foreach ( $columns as $key => $value ) {
+				$new_columns[ $key ] = $value;
+				if ( 'title' === $key ) {
+					$new_columns['customer_name']  = __( 'Name', 'tlf' );
+					$new_columns['customer_email'] = __( 'Email', 'tlf' );
+					$new_columns['customer_phone'] = __( 'Phone', 'tlf' );
+				}
+			}
+			return $new_columns;
+		}
+
+		/**
+		 * Render custom column content.
+		 *
+		 * @since   1.0.0
+		 * @access  public
+		 * @param   string $column_name Column name.
+		 * @param   int    $post_id     Post ID.
+		 * @return  void
+		 */
+		public function render_custom_posts_column( $column_name, $post_id ) {
+			if ( 'customer_name' === $column_name ) {
+				$customer_name = tlf_extract_customer_name( $post_id );
+				echo esc_html( $customer_name );
+			} elseif ( 'customer_email' === $column_name ) {
+				$customer_email = tlf_extract_customer_email( $post_id );
+				if ( ! empty( $customer_email ) ) {
+					echo '<a href="mailto:' . esc_attr( $customer_email ) . '">' . esc_html( $customer_email ) . '</a>';
+				}
+			} elseif ( 'customer_phone' === $column_name ) {
+				$customer_phone = tlf_extract_customer_phone( $post_id );
+				if ( ! empty( $customer_phone ) ) {
+					echo '<a href="tel:' . esc_attr( $customer_phone ) . '">' . esc_html( $customer_phone ) . '</a>';
+				}
+			}
 		}
 
 		// End class.

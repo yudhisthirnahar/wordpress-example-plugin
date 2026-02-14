@@ -21,7 +21,7 @@
 						if (res.success) {
 							//success
 							$tlf_form.find('.tlf-message').removeClass('tlf-danger').addClass('tlf-success');
-							tlf_form[0].reset();
+							$tlf_form[0].reset();
 						} else {
 							$tlf_form.find('.tlf-message').removeClass('tlf-success').addClass('tlf-danger');
 						}
@@ -31,9 +31,14 @@
 					error: function (xhr) { // if error occured						
 						$tlf_form.find('.tlf-message').html(xhr.statusText);
 					},
+					complete: function() {
+						setTimeout(function() {
+							$tlf_form.find('.tlf-message').html('').removeClass('tlf-success tlf-danger');
+						}, 3000);
+					},
 				});
-				return false;				
-			});			
+				return false;
+			});
         }
     });
 
