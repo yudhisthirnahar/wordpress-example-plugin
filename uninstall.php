@@ -5,8 +5,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 function tlf_delete_plugin() {
-	//delete process
-	
+	// delete process.
 }
 
 tlf_delete_plugin();
